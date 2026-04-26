@@ -415,7 +415,7 @@ function startPolling() {
       indicator.classList.add('pulse-active');
       setTimeout(() => indicator.classList.remove('pulse-active'), 600);
     }
-  }, 15000);
+  }, 5000);
 }
 
 function stopPolling() {
