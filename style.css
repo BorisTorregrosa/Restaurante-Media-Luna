@@ -538,7 +538,7 @@
   }
   .btn-toggle-agotado {
     position: absolute;
-    bottom: 12px;
+    top: 12px;
     left: 12px;
     background: rgba(30,26,22,0.75);
     color: #fff;
