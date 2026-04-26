@@ -1,7 +1,45 @@
 // En producción apunta al mismo servidor; en local usa localhost
 const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
 
-// ================== ESTADO ==================
+// ================== INICIO: detectar QR ==================
+// Si la URL tiene ?menu=public muestra directamente el menú del cliente
+(function() {
+  if (window.location.search.includes('menu=public')) {
+    document.addEventListener('DOMContentLoaded', async () => {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('appScreen').style.display = 'none';
+      document.getElementById('publicMenuScreen').style.display = 'block';
+      try {
+        const res = await fetch((window.location.hostname === 'localhost' ? 'http://localhost:3000' : '') + '/menu');
+        const data = await res.json();
+        const items = data.map(item => ({
+          id: item.ProductoID, name: item.Nombre, category: item.Categoria,
+          price: parseFloat(item.Precio), desc: item.Descripcion || '',
+          emoji: item.Emoji || '🍽️', tag: item.Tag || '', image: item.Imagen || '',
+          available: item.Disponible !== false
+        }));
+        // Renderizar menú público
+        const grouped = {};
+        items.forEach(i => { if (!grouped[i.category]) grouped[i.category] = []; grouped[i.category].push(i); });
+        document.getElementById('publicMenuContent').innerHTML = Object.entries(grouped).map(([cat, dishes]) => `
+          <div class="public-category">
+            <div class="public-category-title">${cat}</div>
+            ${dishes.map(item => `
+              <div class="public-item${!item.available ? ' public-item-agotado' : ''}">
+                <div class="public-item-emoji">${item.emoji}</div>
+                <div class="public-item-info">
+                  <div class="public-item-name">${item.name}${!item.available ? ' <span class="public-badge-agotado">Agotado</span>' : ''}</div>
+                  <div class="public-item-desc">${item.desc}</div>
+                  <div class="public-item-price">$${item.price.toFixed(2)}</div>
+                </div>
+              </div>`).join('')}
+          </div>`).join('');
+      } catch(e) { console.error('Error cargando menú público', e); }
+    });
+  }
+})();
+
+// ================== ESTADO ====================
 let pollingInterval = null; // auto-refresco de pedidos
 let menuItems = [];
 let orders = [];
@@ -699,7 +737,8 @@ function generateQR() {
   const qrContainer = document.getElementById('qrcode');
   if (!qrContainer) return;
   qrContainer.innerHTML = '';
-  new QRCode(qrContainer, { text: window.location.href, width: 160, height: 160 });
+  const menuURL = window.location.origin + window.location.pathname + '?menu=public';
+  new QRCode(qrContainer, { text: menuURL, width: 160, height: 160 });
 }
 
 function renderQRPreview() {
