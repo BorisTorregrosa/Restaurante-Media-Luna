@@ -415,7 +415,7 @@ function startPolling() {
       indicator.classList.add('pulse-active');
       setTimeout(() => indicator.classList.remove('pulse-active'), 600);
     }
-  }, 5000);
+  }, 15000);
 }
 
 function stopPolling() {
@@ -649,9 +649,10 @@ async function toggleAgotado(id, currentlyAgotado) {
     });
     if (!res.ok) throw new Error();
     const item = menuItems.find(m => m.id === id);
-    if (item) item.available = currentlyAgotado;
+    if (item) item.available = currentlyAgotado; // currentlyAgotado=true significa "volver a disponible"
     showToast(currentlyAgotado ? '✅ Plato disponible' : '⚠ Plato marcado como agotado', currentlyAgotado ? 'success' : 'error');
     renderMenu();
+    renderPublicMenu(); // actualizar menú QR en tiempo real
   } catch { showToast('Error al actualizar el plato', 'error'); }
 }
 
@@ -721,10 +722,13 @@ async function confirmDelete() {
   try {
     const res = await fetch(`${API}/menu/${itemToDelete}`, { method: 'DELETE' });
     if (!res.ok) throw new Error();
-    showToast('🗑 Plato eliminado', 'success');
+    // Eliminar del array local inmediatamente (en BD queda como disponible=false)
+    menuItems = menuItems.filter(m => m.id !== itemToDelete);
+    showToast('🗑 Plato eliminado del menú', 'success');
     closeModal('modalConfirm');
     itemToDelete = null;
-    loadMenu();
+    renderMenu();         // actualizar panel admin
+    renderPublicMenu();   // actualizar menú QR en tiempo real
   } catch { showToast('Error eliminando el plato', 'error'); }
 }
 
