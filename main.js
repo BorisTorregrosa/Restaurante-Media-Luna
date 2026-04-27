@@ -5,12 +5,11 @@ const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' :
 // Si la URL tiene ?menu=public muestra directamente el menú del cliente
 (function() {
   if (window.location.search.includes('menu=public')) {
-    document.addEventListener('DOMContentLoaded', async () => {
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('appScreen').style.display = 'none';
-      document.getElementById('publicMenuScreen').style.display = 'block';
+    const QR_API = window.location.hostname === 'localhost' ? 'http://localhost:3000' : '';
+
+    async function cargarMenuPublico() {
       try {
-        const res = await fetch((window.location.hostname === 'localhost' ? 'http://localhost:3000' : '') + '/menu');
+        const res = await fetch(QR_API + '/menu');
         const data = await res.json();
         const items = data.map(item => ({
           id: item.ProductoID, name: item.Nombre, category: item.Categoria,
@@ -18,7 +17,6 @@ const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' :
           emoji: item.Emoji || '🍽️', tag: item.Tag || '', image: item.Imagen || '',
           available: item.Disponible !== false
         }));
-        // Renderizar menú público
         const grouped = {};
         items.forEach(i => { if (!grouped[i.category]) grouped[i.category] = []; grouped[i.category].push(i); });
         document.getElementById('publicMenuContent').innerHTML = Object.entries(grouped).map(([cat, dishes]) => `
@@ -35,6 +33,15 @@ const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' :
               </div>`).join('')}
           </div>`).join('');
       } catch(e) { console.error('Error cargando menú público', e); }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('appScreen').style.display = 'none';
+      document.getElementById('publicMenuScreen').style.display = 'block';
+      cargarMenuPublico();
+      // Auto-refresco cada 30 segundos para reflejar cambios del admin
+      setInterval(cargarMenuPublico, 30000);
     });
   }
 })();
