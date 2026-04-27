@@ -259,7 +259,7 @@ function renderMenu() {
         <div class="menu-card-name">${item.name}${item.tag ? `<span class="tag ${item.tag}">${item.tag === 'new' ? 'Nuevo' : 'Popular'}</span>` : ''}</div>
         <div class="menu-card-desc">${item.desc}</div>
         <div class="menu-card-footer">
-          <div class="menu-card-price">$${item.price.toFixed(2)} <span>USD</span></div>
+          <div class="menu-card-price">$${item.price.toFixed(2)} <span>COP</span></div>
           ${item.available ? `<button class="btn-add" onclick="addToOrder(${item.id})">+</button>` : `<span class="btn-add-disabled">—</span>`}
         </div>
       </div>
@@ -603,7 +603,7 @@ function renderDashboard() {
     <div class="stat-card terracotta">
       <div class="stat-label">Ingresos ${dashboardPeriod === 'week' ? 'Semanales' : 'Mensuales'}</div>
       <div class="stat-value">$${totalRevenue.toFixed(0)}</div>
-      <div class="stat-sub">USD facturado</div>
+      <div class="stat-sub">COP facturado</div>
     </div>
     <div class="stat-card gold">
       <div class="stat-label">Pedidos Entregados</div>
@@ -810,7 +810,7 @@ function renderArchived() {
       <div class="archived-card-body">
         <div class="menu-card-category">${item.Categoria}</div>
         <div class="archived-card-name">${item.Nombre}</div>
-        <div class="archived-card-price">$${parseFloat(item.Precio).toFixed(2)} <span>USD</span></div>
+        <div class="archived-card-price">$${parseFloat(item.Precio).toFixed(2)} <span>COP</span></div>
         <div class="archived-card-actions">
           <button class="btn-restore" onclick="restaurarPlato(${item.ProductoID})">↩ Restaurar</button>
           <button class="btn-delete-perm" onclick="eliminarDefinitivo(${item.ProductoID}, '${item.Nombre.replace(/'/g,"\\'")}')">🗑 Borrar</button>
