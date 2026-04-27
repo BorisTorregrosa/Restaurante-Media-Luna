@@ -49,6 +49,7 @@ const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' :
 // ================== ESTADO ====================
 let pollingInterval = null; // auto-refresco de pedidos
 let menuItems = [];
+let trashItems = []; // Almacenará los platos eliminados (Papelera)
 let orders = [];
 let currentOrder = [];
 let currentUser = null;
@@ -173,15 +174,34 @@ async function loadMenu() {
     const endpoint = canSeeAll ? `${API}/menu/all` : `${API}/menu`;
     const res = await fetch(endpoint);
     const data = await res.json();
-    menuItems = data.map(item => ({
-      id: item.ProductoID, name: item.Nombre, category: item.Categoria,
-      price: parseFloat(item.Precio), desc: item.Descripcion || '',
-      emoji: item.Emoji || '🍽️', tag: item.Tag || '', image: item.Imagen || '',
-      available: item.Disponible !== false && item.Disponible !== 0
+    
+    // Mapeamos los datos del servidor
+    const allItemsFromDB = data.map(item => ({
+      id: item.ProductoID, 
+      name: item.Nombre, 
+      category: item.Categoria,
+      price: parseFloat(item.Precio), 
+      desc: item.Descripcion || '',
+      emoji: item.Emoji || '🍽️', 
+      tag: item.Tag || '', 
+      image: item.Imagen || '',
+      available: item.Disponible !== false && item.Disponible !== 0,
+      isDeleted: item.Eliminado === 1 || item.Eliminado === true // Campo de borrado lógico
     }));
+
+    // SEPARACIÓN DE IDEAS:
+    // 1. Menu Activo: No están eliminados
+    menuItems = allItemsFromDB.filter(item => !item.isDeleted);
+    
+    // 2. Papelera: Solo los eliminados (Solo para Admin)
+    trashItems = allItemsFromDB.filter(item => item.isDeleted);
+
     renderMenu();
+    if (currentUser.role === 'admin') renderTrash(); 
     renderPublicMenu();
-  } catch (err) { showToast('Error cargando el menú', 'error'); }
+  } catch (err) { 
+    showToast('Error cargando el menú', 'error'); 
+  }
 }
 
 function getCategories() { return ['Todas', ...new Set(menuItems.map(m => m.category))]; }
@@ -786,6 +806,71 @@ function previewImage() {
     img.onerror = () => { wrap.style.display = 'none'; };
   } else {
     wrap.style.display = 'none';
+  }
+}
+
+// Renderiza la lista de platos en la papelera
+function renderTrash() {
+  const container = document.getElementById('trashGrid');
+  if (!container) return;
+
+  if (!trashItems.length) {
+    container.innerHTML = `<p style="text-align:center; color:var(--muted); padding:20px; font-style:italic;">La papelera está vacía.</p>`;
+    return;
+  }
+
+  container.innerHTML = trashItems.map(item => `
+    <div class="trash-card" style="display:flex; justify-content:space-between; align-items:center; padding:12px; margin-bottom:8px; background:rgba(0,0,0,0.03); border:1px dashed #ccc; border-radius:8px;">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="font-size:20px;">${item.emoji}</span>
+        <div>
+          <div style="font-weight:600; color:var(--ink);">${item.name}</div>
+          <div style="font-size:11px; color:var(--muted);">${item.category}</div>
+        </div>
+      </div>
+      <button onclick="restoreItem(${item.id})" class="btn-status" style="background:var(--olive); color:white; border:none;">
+        Restaurar ↩️
+      </button>
+    </div>
+  `).join('');
+}
+
+// Envía la orden al servidor para "revivir" el plato
+async function restoreItem(id) {
+  try {
+    const res = await fetch(`${API}/menu/${id}/restore`, {
+      method: 'PATCH'
+    });
+    if (!res.ok) throw new Error();
+    
+    showToast('✅ Producto restaurado al menú', 'success');
+    loadMenu(); // Recarga para mover de trashItems a menuItems
+  } catch (err) {
+    showToast('Error al restaurar', 'error');
+  }
+}
+
+async function cargarMenuPublico() {
+  try {
+    const res = await fetch(QR_API + '/menu');
+    const data = await res.json();
+    
+    // FILTRO DE SEGURIDAD: Solo mostrar lo que NO esté eliminado
+    const items = data
+      .filter(item => item.Eliminado !== 1 && item.Eliminado !== true) 
+      .map(item => ({
+        id: item.ProductoID, 
+        name: item.Nombre, 
+        category: item.Categoria,
+        price: parseFloat(item.Precio), 
+        desc: item.Descripcion || '',
+        emoji: item.Emoji || '🍽️', 
+        available: item.Disponible !== false && item.Disponible !== 0
+      }));
+      
+    // ... resto de tu lógica de agrupado por categorías y renderizado
+  } catch(e) { 
+    console.error('Error cargando menú público', e); 
   }
 }
 
