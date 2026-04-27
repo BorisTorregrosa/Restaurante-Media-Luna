@@ -1,6 +1,10 @@
 const express = require('express');
 const cors    = require('cors');
+const jwt     = require('jsonwebtoken');
 const { pool } = require('./db');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'media_luna_secret_key_changeme';
+const JWT_EXPIRES = '7d'; // sesión dura 7 días
 
 const app = express();
 app.use(cors());
@@ -23,10 +27,27 @@ app.post('/login', async (req, res) => {
       'SELECT * FROM usuarios WHERE usuario = $1', [user]
     );
     const u = result.rows[0];
-    if (!u)          return res.status(400).json({ error: 'Usuario no existe' });
+    if (!u)               return res.status(400).json({ error: 'Usuario no existe' });
     if (u.password !== pass) return res.status(400).json({ error: 'Contraseña incorrecta' });
-    res.json({ UsuarioID: u.usuarioid, Nombre: u.nombre, Rol: u.rol });
+
+    const payload = { id: u.usuarioid, name: u.nombre, role: u.rol };
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES });
+
+    res.json({ UsuarioID: u.usuarioid, Nombre: u.nombre, Rol: u.rol, token });
   } catch (err) { res.status(500).send(err.message); }
+});
+
+// ================== VERIFICAR TOKEN ==================
+app.get('/auth/verify', (req, res) => {
+  const auth = req.headers.authorization;
+  if (!auth || !auth.startsWith('Bearer '))
+    return res.status(401).json({ error: 'Sin token' });
+  try {
+    const decoded = jwt.verify(auth.slice(7), JWT_SECRET);
+    res.json({ UsuarioID: decoded.id, Nombre: decoded.name, Rol: decoded.role });
+  } catch {
+    res.status(401).json({ error: 'Token inválido o expirado' });
+  }
 });
 
 // ================== MENÚ COMPLETO (admin y cocinero ven agotados) ==================
