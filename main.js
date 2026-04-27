@@ -380,7 +380,7 @@ function buildReceiptHTML(pedidoId, fecha, waiter, items, subtotal, tax, total, 
       <div class="receipt-header">
         <div style="font-size:20px; margin-bottom:6px;">✦</div>
         <h2>Restaurante Media Luna</h2>
-        <p>Via Roma 12 · Cucina Autentica</p>
+        <p>Calle 41 #17C- 185 · Cucina Autentica</p>
         <p style="margin-top:8px;">Pedido #${String(pedidoId || '—').padStart(4, '0')}</p>
         <p>${fecha}</p>
         <p>Atendido por: ${waiter}</p>
