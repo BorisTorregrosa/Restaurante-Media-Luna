@@ -46,7 +46,35 @@ const API = window.location.hostname === 'localhost' ? 'http://localhost:3000' :
   }
 })();
 
-// ================== ESTADO ====================
+// ================== RESTAURAR SESIÓN AL CARGAR ==================
+// Si hay un token guardado, verificarlo con el servidor y restaurar la sesión
+// sin pedirle al usuario que vuelva a hacer login.
+(function restoreSession() {
+  // No interferir con la vista de menú público QR
+  if (window.location.search.includes('menu=public')) return;
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const token = localStorage.getItem('ml_token');
+    if (!token) return; // no hay sesión guardada → mostrar login normal
+
+    try {
+      const res = await fetch(`${API}/auth/verify`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        // Token expirado o inválido → limpiar y mostrar login
+        localStorage.removeItem('ml_token');
+        return;
+      }
+      const data = await res.json();
+      currentUser = { id: data.UsuarioID, name: data.Nombre, role: data.Rol };
+      showApp(); // entrar directamente sin pasar por login
+    } catch {
+      // Sin conexión al verificar → limpiar por seguridad
+      localStorage.removeItem('ml_token');
+    }
+  });
+})();
 let pollingInterval = null; // auto-refresco de pedidos
 let menuItems = [];
 let orders = [];
@@ -69,6 +97,8 @@ async function doLogin() {
     const data = await res.json();
     if (!res.ok) { document.getElementById('loginError').style.display = 'block'; return; }
     document.getElementById('loginError').style.display = 'none';
+    // Guardar token en localStorage para persistir la sesión
+    localStorage.setItem('ml_token', data.token);
     currentUser = { id: data.UsuarioID, name: data.Nombre, role: data.Rol };
     showApp();
   } catch (err) {
@@ -80,6 +110,7 @@ function doLogout() {
   stopPolling();
   currentUser = null;
   currentOrder = [];
+  localStorage.removeItem('ml_token');
   document.getElementById('appScreen').style.display = 'none';
   document.getElementById('publicMenuScreen').style.display = 'none';
   const ls = document.getElementById('loginScreen');
@@ -228,7 +259,7 @@ function renderMenu() {
         <div class="menu-card-name">${item.name}${item.tag ? `<span class="tag ${item.tag}">${item.tag === 'new' ? 'Nuevo' : 'Popular'}</span>` : ''}</div>
         <div class="menu-card-desc">${item.desc}</div>
         <div class="menu-card-footer">
-          <div class="menu-card-price">$${item.price.toFixed(2)} <span>COP</span></div>
+          <div class="menu-card-price">$${item.price.toFixed(2)} <span>USD</span></div>
           ${item.available ? `<button class="btn-add" onclick="addToOrder(${item.id})">+</button>` : `<span class="btn-add-disabled">—</span>`}
         </div>
       </div>
@@ -572,7 +603,7 @@ function renderDashboard() {
     <div class="stat-card terracotta">
       <div class="stat-label">Ingresos ${dashboardPeriod === 'week' ? 'Semanales' : 'Mensuales'}</div>
       <div class="stat-value">$${totalRevenue.toFixed(0)}</div>
-      <div class="stat-sub">COP facturado</div>
+      <div class="stat-sub">USD facturado</div>
     </div>
     <div class="stat-card gold">
       <div class="stat-label">Pedidos Entregados</div>
@@ -779,7 +810,7 @@ function renderArchived() {
       <div class="archived-card-body">
         <div class="menu-card-category">${item.Categoria}</div>
         <div class="archived-card-name">${item.Nombre}</div>
-        <div class="archived-card-price">$${parseFloat(item.Precio).toFixed(2)} <span>COP</span></div>
+        <div class="archived-card-price">$${parseFloat(item.Precio).toFixed(2)} <span>USD</span></div>
         <div class="archived-card-actions">
           <button class="btn-restore" onclick="restaurarPlato(${item.ProductoID})">↩ Restaurar</button>
           <button class="btn-delete-perm" onclick="eliminarDefinitivo(${item.ProductoID}, '${item.Nombre.replace(/'/g,"\\'")}')">🗑 Borrar</button>
