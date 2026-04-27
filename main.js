@@ -116,10 +116,11 @@ function showApp() {
   let tabs = [];
   if (currentUser.role === 'admin') {
     tabs = [
-      { id: 'secMenu',      label: '🍽 Menú' },
-      { id: 'secOrders',   label: '📋 Pedidos' },
-      { id: 'secDashboard',label: '📊 Balance' },
-      { id: 'secQR',       label: '📱 Código QR' }
+      { id: 'secMenu',       label: '🍽 Menú' },
+      { id: 'secOrders',    label: '📋 Pedidos' },
+      { id: 'secDashboard', label: '📊 Balance' },
+      { id: 'secQR',        label: '📱 Código QR' },
+      { id: 'secPapeleria', label: '📦 Papelería' }
     ];
   } else if (currentUser.role === 'mesero') {
     tabs = [{ id: 'secMenu', label: '🍽 Menú' }];
@@ -151,6 +152,7 @@ function showSection(id) {
   });
   if (id === 'secDashboard') renderDashboard();
   if (id === 'secQR') renderQRPreview();
+  if (id === 'secPapeleria') loadArchived();
 }
 
 function showPublicMenu() {
@@ -729,13 +731,82 @@ async function confirmDelete() {
   try {
     const res = await fetch(`${API}/menu/${itemToDelete}`, { method: 'DELETE' });
     if (!res.ok) throw new Error();
-    // Eliminar del array local inmediatamente (en BD queda como disponible=false)
+    // Remover del array local (queda archivado en BD, no borrado)
     menuItems = menuItems.filter(m => m.id !== itemToDelete);
-    showToast('🗑 Plato eliminado del menú', 'success');
+    showToast('📦 Plato enviado a la Papelería', 'success');
     closeModal('modalConfirm');
     itemToDelete = null;
-    renderMenu();         // actualizar panel admin
-    renderPublicMenu();   // actualizar menú QR en tiempo real
+    renderMenu();
+    renderPublicMenu();
+  } catch { showToast('Error archivando el plato', 'error'); }
+}
+
+// ================== PAPELERÍA ==================
+let archivedItems = [];
+
+async function loadArchived() {
+  try {
+    const res = await fetch(`${API}/menu/archivados`);
+    archivedItems = await res.json();
+    renderArchived();
+  } catch { showToast('Error cargando la papelería', 'error'); }
+}
+
+function renderArchived() {
+  const container = document.getElementById('archivedGrid');
+  if (!container) return;
+
+  if (!archivedItems.length) {
+    container.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1; padding:60px 20px">
+        <div class="icon">📦</div>
+        <h3>Papelería vacía</h3>
+        <p>Los platos que elimines del menú aparecerán aquí para poder restaurarlos.</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = archivedItems.map(item => `
+    <div class="archived-card">
+      <div class="archived-card-img">
+        ${item.Imagen
+          ? `<img src="${item.Imagen}" alt="${item.Nombre}" style="width:100%;height:100%;object-fit:cover;border-radius:2px;opacity:0.6;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+             <span style="font-size:52px;line-height:1;opacity:0.5;display:none;">${item.Emoji || '🍽️'}</span>`
+          : `<span style="font-size:52px;line-height:1;opacity:0.5;">${item.Emoji || '🍽️'}</span>`
+        }
+        <div class="archived-overlay">Archivado</div>
+      </div>
+      <div class="archived-card-body">
+        <div class="menu-card-category">${item.Categoria}</div>
+        <div class="archived-card-name">${item.Nombre}</div>
+        <div class="archived-card-price">$${parseFloat(item.Precio).toFixed(2)} <span>USD</span></div>
+        <div class="archived-card-actions">
+          <button class="btn-restore" onclick="restaurarPlato(${item.ProductoID})">↩ Restaurar</button>
+          <button class="btn-delete-perm" onclick="eliminarDefinitivo(${item.ProductoID}, '${item.Nombre.replace(/'/g,"\\'")}')">🗑 Borrar</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+async function restaurarPlato(id) {
+  try {
+    const res = await fetch(`${API}/menu/${id}/restaurar`, { method: 'PATCH' });
+    if (!res.ok) throw new Error();
+    archivedItems = archivedItems.filter(i => i.ProductoID !== id);
+    renderArchived();
+    showToast('✅ Plato restaurado al menú', 'success');
+    loadMenu(); // recargar el menú activo
+  } catch { showToast('Error restaurando el plato', 'error'); }
+}
+
+async function eliminarDefinitivo(id, nombre) {
+  if (!confirm(`¿Eliminar "${nombre}" de forma permanente? Esta acción no se puede deshacer y borrará el registro completo.`)) return;
+  try {
+    const res = await fetch(`${API}/menu/${id}/definitivo`, { method: 'DELETE' });
+    if (!res.ok) throw new Error();
+    archivedItems = archivedItems.filter(i => i.ProductoID !== id);
+    renderArchived();
+    showToast('🗑 Plato eliminado permanentemente', 'success');
   } catch { showToast('Error eliminando el plato', 'error'); }
 }
 
