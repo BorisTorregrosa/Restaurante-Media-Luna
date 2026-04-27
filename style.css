@@ -28,47 +28,6 @@
     overflow-x: hidden;
   }
 
-/* Estilos para la Papelera */
-.trash-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 15px;
-}
-
-.trash-card {
-  background: #f9f9f9;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  padding: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  transition: all 0.3s ease;
-}
-
-.trash-card:hover {
-  background: #fff;
-  border-color: var(--olive);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-}
-
-.btn-restore {
-  background: var(--olive);
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 5px;
-  font-size: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  transition: opacity 0.2s;
-}
-
-.btn-restore:hover {
-  opacity: 0.9;
-}
 
   /* ===== PATTERNS & TEXTURES ===== */
   .texture-bg {
