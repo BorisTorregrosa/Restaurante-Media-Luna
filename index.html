@@ -186,6 +186,16 @@
         </div>
       </div>
     </div>
+    <!-- PAPELERÍA SECTION (Admin only) -->
+    <div class="section" id="secPapeleria">
+      <div class="section-header">
+        <div>
+          <h2>Papelería</h2>
+          <p>Platos archivados — restáuralos o elimínalos definitivamente</p>
+        </div>
+      </div>
+      <div class="menu-grid" id="archivedGrid"></div>
+    </div>
   </div>
 </div>
 
@@ -271,15 +281,15 @@
 <div class="modal-overlay" id="modalConfirm">
   <div class="modal" style="width:400px">
     <div class="modal-header">
-      <h3>Confirmar Eliminación</h3>
+      <h3>Archivar Plato</h3>
       <button class="btn-close" onclick="closeModal('modalConfirm')">×</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:16px; color:var(--muted)">¿Estás seguro de que deseas eliminar este plato del menú? Esta acción no se puede deshacer.</p>
+      <p style="font-size:16px; color:var(--muted)">¿Mover este plato a la <strong>Papelería</strong>? Podrás restaurarlo desde la sección Papelería en cualquier momento.</p>
     </div>
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closeModal('modalConfirm')">Cancelar</button>
-      <button class="btn-confirm" style="background:var(--danger)" onclick="confirmDelete()">Eliminar</button>
+      <button class="btn-confirm" style="background:var(--muted)" onclick="confirmDelete()">📦 Archivar</button>
     </div>
   </div>
 </div>
