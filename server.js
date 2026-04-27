@@ -33,7 +33,7 @@ app.post('/login', async (req, res) => {
 app.get('/menu/all', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM productos ORDER BY categoria, nombre'
+      'SELECT * FROM productos WHERE archivado IS NOT TRUE ORDER BY categoria, nombre'
     );
     res.json(result.rows.map(r => ({
       ProductoID:  r.productoid,
@@ -53,7 +53,7 @@ app.get('/menu/all', async (req, res) => {
 app.get('/menu', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM productos WHERE disponible = true ORDER BY categoria, nombre'
+      'SELECT * FROM productos WHERE disponible = true AND (archivado IS NOT TRUE) ORDER BY categoria, nombre'
     );
     res.json(result.rows.map(r => ({
       ProductoID:  r.productoid,
@@ -95,8 +95,12 @@ app.put('/menu/:id', async (req, res) => {
 
 app.delete('/menu/:id', async (req, res) => {
   try {
-    await pool.query('UPDATE productos SET disponible=false WHERE productoid=$1', [req.params.id]);
-    res.json({ message: 'Plato eliminado' });
+    // Archivar: marcar como archivado y no disponible, pero conservar el registro intacto
+    await pool.query(
+      'UPDATE productos SET archivado=true, disponible=false WHERE productoid=$1',
+      [req.params.id]
+    );
+    res.json({ message: 'Plato archivado' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -163,6 +167,44 @@ app.patch('/orders/:id/status', async (req, res) => {
       'UPDATE pedidos SET estado=$1 WHERE pedidoid=$2', [status, req.params.id]
     );
     res.json({ message: 'Estado actualizado' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ================== PAPELERÍA: VER ARCHIVADOS ==================
+app.get('/menu/archivados', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM productos WHERE archivado = true ORDER BY categoria, nombre'
+    );
+    res.json(result.rows.map(r => ({
+      ProductoID:  r.productoid,
+      Nombre:      r.nombre,
+      Categoria:   r.categoria,
+      Precio:      r.precio,
+      Descripcion: r.descripcion,
+      Emoji:       r.emoji,
+      Tag:         r.tag,
+      Imagen:      r.imagen
+    })));
+  } catch (err) { res.status(500).send(err.message); }
+});
+
+// ================== PAPELERÍA: RESTAURAR ==================
+app.patch('/menu/:id/restaurar', async (req, res) => {
+  try {
+    await pool.query(
+      'UPDATE productos SET archivado=false, disponible=true WHERE productoid=$1',
+      [req.params.id]
+    );
+    res.json({ message: 'Plato restaurado al menú' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ================== PAPELERÍA: ELIMINAR DEFINITIVAMENTE ==================
+app.delete('/menu/:id/definitivo', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM productos WHERE productoid=$1', [req.params.id]);
+    res.json({ message: 'Plato eliminado definitivamente' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
