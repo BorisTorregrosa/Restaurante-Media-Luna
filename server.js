@@ -255,6 +255,10 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
 
 app.get('/test-users', async (req, res) => {
-  const result = await pool.query('SELECT usuarioid, usuario, nombre, rol FROM usuarios');
-  res.json(result.rows);
+  try {
+    const result = await pool.query('SELECT usuarioid, usuario, nombre, rol FROM usuarios');
+    res.json(result.rows);
+  } catch (err) { res.status(500).send(err.message); }
 });
+
+
